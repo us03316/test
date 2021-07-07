@@ -1,0 +1,1 @@
+python main.py --task pickAndplace --robot-file jaco2_curtain_torque --seed 0 --visualize True --auxiliary False
