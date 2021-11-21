@@ -9,7 +9,7 @@ import stable_baselines.common.tf_util as tf_util
 from stable_baselines.hpc import HPC
 from stable_baselines.hpc.policies import MlpPolicy
 
-from env_script.env_mujoco import JacoMujocoEnv
+from env_script.env_mujoco import JacoMujocoEnv , PandaMujocoEnv
 
 from argparser import ArgParser
     
@@ -45,7 +45,7 @@ class RL_controller:
         self.args.rulebased_subgoal = True
 
         composite_primitive_name = self.args.task
-        env = JacoMujocoEnv(**vars(self.args))
+        env = PandaMujocoEnv(**vars(self.args))
         self.model = HPC(policy=MlpPolicy, 
                                 env=None, 
                                 _init_setup_model=False, 
@@ -181,9 +181,9 @@ class RL_controller:
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
 
-        env = JacoMujocoEnv(**vars(self.args))
+        env = PandaMujocoEnv(**vars(self.args))
         self.model = HPC(policy=MlpPolicy, env=None, _init_setup_model=False)
-        
+
         model_dir = self.model_path + self.args.task
         self.args.log_dir = model_dir
         sub_dir = '/finetune1'
@@ -192,11 +192,11 @@ class RL_controller:
 
         # Weight definition
         obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]  #PickAndPlace
-        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]    #Picking
+        #obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]    #Picking
         # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]   #Placing
-        act_idx = [0,1,2,3,4,5, 6]
+        act_idx = [0,1,2,3,4,5,6]
         
-        policy_zip_path = model_dir+'/policy.zip'
+        policy_zip_path = model_dir+'/policy.zip'    #### pick and place : 2 , picking: 1
         self.model.construct_primitive_info(name='continue', freeze=False, level=2,
                                         obs_range=None, obs_index=obs_idx,
                                         act_range=None, act_index=act_idx, act_scale=1,
@@ -213,6 +213,7 @@ class RL_controller:
         print("\033[91mTraining Starts\033[0m")
         self.model.learn(total_timesteps=self.args.num_timesteps, save_interval=self.args.save_interval, save_path=model_dir+sub_dir)
         print("\033[91mTrain Finished\033[0m")
+        
         self.model.save(model_dir+sub_dir+"/policy_new",hierarchical=True)
         print("\033[91mPolicy Saved\033[0m")
 
@@ -220,11 +221,12 @@ class RL_controller:
         print("Testing called")
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
-        env = JacoMujocoEnv(**vars(self.args))
+        #env = JacoMujocoEnv(**vars(self.args))
+        env = PandaMujocoEnv(**vars(self.args))
         
         prefix = 'pickAndplace/policy.zip'
         # prefix = 'grasping/policy.zip'
-        # prefix = 'picking/policy.zip'
+        #prefix = 'picking/policy.zip'
         # prefix = 'placing/policy.zip'
         model_dir = self.model_path + prefix
         self.model = HPC(policy=MlpPolicy, env=None, _init_setup_model=False, composite_primitive_name=self.args.task)
@@ -232,6 +234,7 @@ class RL_controller:
         # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]    #Picking
         # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]   #Placing
         act_idx = [0,1,2,3,4,5, 6]
+
         self.model.construct_primitive_info(name=None, freeze=True, level=3,
                                             obs_range=None, obs_index=obs_idx,
                                             act_range=None, act_index=act_idx, act_scale=1,
@@ -247,19 +250,21 @@ class RL_controller:
         for _ in range(test_iter):
             iter = 0
             obs = env.reset()
+
             done = False
 
             while not done:
                 iter += 1
                 action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
-                obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
+                obs, reward, done, _ = env.step(action,  weight=weight, subgoal=subgoal)
                 if reward > 100 and done:
                     success += 1
+                
         print("Success rate: ",success/test_iter*100)
 
 
 if __name__ == "__main__":
     controller = RL_controller()
-    # controller.train_HPC()
-    # controller.train_HPC_continue()
-    controller.test()
+    #controller.train_HPC()
+    controller.train_HPC_continue()
+    #controller.test()

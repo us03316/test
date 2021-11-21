@@ -104,7 +104,7 @@ class MujocoConfig:
 
         # number of joints in the Mujoco simulation
         if self.N_ROBOTS == 1:
-            N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE")) / 3)
+            N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EEE")) / 3)
         else:
             # N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE_2")) / 3 / self.N_ROBOTS)
             N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE_2")) / 3)
@@ -149,8 +149,10 @@ class MujocoConfig:
                     for ii in range(3)]
                 )
             )
+
         self.jac_indices = np.array(self.jac_indices)
         
+
         print("M_indices\n", self.M_indices) if debug else None
         # a place to store data returned from Mujoco
         #self._g = np.zeros(self.N_JOINTS)
@@ -168,6 +170,7 @@ class MujocoConfig:
         self._R = np.zeros((3, 3))
         self._x = np.ones(4)
         self.N_ALL_JOINTS = N_ALL_JOINTS
+        
 
     def _load_state(self, q, dq=None, u=None):
         """ Change the current joint angles
@@ -256,6 +259,7 @@ class MujocoConfig:
         """
         for i in range(self.N_ROBOTS):
             jac_indices = self.jac_indices[i]
+            
             print("jac_indices: ",jac_indices) if debug else None
             if x is not None and not np.allclose(x, 0):
                 raise Exception("x offset currently not supported, set to None")
@@ -290,7 +294,7 @@ class MujocoConfig:
             self._J6N[i][:3] = self._J3NP[jac_indices].reshape((3, self.N_JOINTS))
             # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
             self._J6N[i][3:] = self._J3NR[jac_indices].reshape((3, self.N_JOINTS))
-
+            
             if not self.use_sim_state and q is not None:
                 self._load_state(old_q, old_dq, old_u)
         if debug:

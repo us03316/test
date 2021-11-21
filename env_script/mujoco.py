@@ -30,7 +30,7 @@ class Mujoco:
         visualize=True,
         create_offscreen_rendercontext=False,
     ):
-
+        
         self.dt = dt  # time step
         self.count = 0  # keep track of how many times send forces is called
 
@@ -42,7 +42,7 @@ class Mujoco:
         self.visualize = visualize
         # if we want the offscreen render context
         self.create_offscreen_rendercontext = create_offscreen_rendercontext
-
+        
     def connect(self, joint_names=None, camera_id=-1):
         """
         joint_names: list, optional (Default: None)
@@ -56,18 +56,18 @@ class Mujoco:
         self.sim.forward()  # run forward to fill in sim.data
         model = self.sim.model
         self.model = model
-
+        
         if joint_names is None:
             joint_ids, joint_names = self.get_joints_in_ee_kinematic_tree()
         else:
             joint_ids = [model.joint_name2id(name) for name in joint_names]
         self.joint_pos_addrs = [model.get_joint_qpos_addr(name) for name in joint_names]
-        self.joint_vel_addrs = [model.get_joint_qvel_addr(name) for name in joint_names]
+        self.joint_vel_addrs = [model.get_joint_qvel_addr(name) for name in joint_names]        
         joint_pos_addrs_vert = np.array(self.joint_pos_addrs).reshape((self.robot_config.N_ROBOTS,-1))
         tiled = np.tile(joint_pos_addrs_vert[:,-1].reshape((-1,1)),3)
         adds = np.tile(np.arange(1,4),self.robot_config.N_ROBOTS).reshape((self.robot_config.N_ROBOTS,-1))
         self.joint_pos_addrs_fing = np.hstack([joint_pos_addrs_vert,tiled+adds]).flatten()
-
+        
         # Need to also get the joint rows of the Jacobian, inertia matrix, and
         # gravity vector. This is trickier because if there's a quaternion in
         # the joint (e.g. a free joint or a ball joint) then the joint position
@@ -77,6 +77,7 @@ class Mujoco:
         # calculate the Jacobian position based on their order and type.
         index = 0
         self.joint_dyn_addrs = []
+
         for ii, joint_type in enumerate(model.jnt_type):
             if ii in joint_ids:
                 self.joint_dyn_addrs.append(index)
@@ -87,12 +88,13 @@ class Mujoco:
             else:  # slide or hinge joint
                 index += 1  # derivative has 1 dimensions
 
+
         # give the robot config access to the sim for wrapping the
         # forward kinematics / dynamics functions
         self.robot_config._connect(
             self.sim, self.joint_pos_addrs, self.joint_vel_addrs, self.joint_dyn_addrs
         )
-
+        
         # if we want to use the offscreen render context create it before the
         # viewer so the corresponding window is behind the viewer
         if self.create_offscreen_rendercontext:
@@ -121,10 +123,10 @@ class Mujoco:
         joint_names = []
         body_id_list = []
         if self.robot_config.N_ROBOTS == 1:
-            body_id_list.append(model.body_name2id("EE"))
+            body_id_list.append(model.body_name2id("EEE"))
         else:
             for i in range(self.robot_config.N_ROBOTS):
-                body_id_list.append(model.body_name2id("EE_"+str(self.robot_config.N_ROBOTS-i)))
+                body_id_list.append(model.body_name2id("EEE_"+str(self.robot_config.N_ROBOTS-i)))
 
         # start with the end-effector and work back to the world body
         for id in body_id_list:
@@ -138,11 +140,13 @@ class Mujoco:
                 joint_ids += tmp_ids[::-1]
                 joint_names += tmp_names[::-1]
                 id = model.body_parentid[id]
+
         
         # flip the list so it starts with the base of the arm / first joint
         joint_names = joint_names[::-1]
         joint_ids = np.array(joint_ids[::-1])
 
+        
         return joint_ids, joint_names
 
     def get_orientation(self, name, object_type="body"):
@@ -225,6 +229,7 @@ class Mujoco:
         new_state = mjp.MjSimState(old_state.time, new_qpos, new_qvel, old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
         self.sim.forward()
+
     
     def set_dest_xyz(self, xy):
         old_state = self.sim.get_state()
@@ -269,11 +274,12 @@ class Mujoco:
             toggle for updating display
         """
 
+
         # NOTE: the qpos_addr's are unrelated to the order of the motors
         # NOTE: assuming that the robot arm motors are the first len(u) values
         # print(['{: 2.3f}'.format(item) for item in self.sim.data.ctrl])
         self.sim.data.ctrl[:] = u[:]
-
+        
         # move simulation ahead one time step
         self.sim.step()
 
@@ -334,17 +340,19 @@ class Mujoco:
 
         Parameters
         ----------
-        q: np.array
+        q: np.arraya
             configuration to move to [rad]
         dq: np.array
             joint velocities [rad/s]
         """
+
         if len(q) == len(self.joint_pos_addrs):
             self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
         else:
             self.sim.data.qpos[self.joint_pos_addrs_fing] = np.copy(q)
         self.sim.data.qvel[self.joint_vel_addrs] = np.copy(dq)
         self.sim.forward()
+
 
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller.
