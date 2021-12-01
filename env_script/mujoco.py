@@ -346,6 +346,7 @@ class Mujoco:
             joint velocities [rad/s]
         """
 
+
         if len(q) == len(self.joint_pos_addrs):
             self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
         else:

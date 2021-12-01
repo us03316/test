@@ -7,6 +7,7 @@ from math import pi
 
 import numpy as np
 from numpy.random import uniform, choice
+from gym.utils import seeding
 
 if __name__ != "__main__":
     from abr_control.controllers import OSC
@@ -353,6 +354,7 @@ class JacoMujocoEnvUtil:
                 rpy_real = np.cross(rpy_vec, rpy_dummy)
                 rpy_real[0] -= pi/2
                 subgoal_ori = rpy_real + np.array([(np.random.uniform()-0.5)/10 for _ in range(3)])
+
             elif i == 1:
                 subgoal_pos = self.dest_goal[0]
                 subgoal_ori = np.array([0, -np.pi/2, 0])
@@ -373,7 +375,7 @@ class JacoMujocoEnvUtil:
         return image, depth
 
     def __get_gripper_pose(self):
-        self.gripper_pose = self.__get_property('EE', 'pose')
+        self.gripper_pose = self.__get_property('EEE', 'pose')
 
     def _get_reward(self):
         if self.reward_method is None:
@@ -406,7 +408,7 @@ class JacoMujocoEnvUtil:
                 # Negative Rewards
                 # Gripper too close to the robot base
                 wb_th = 0.15
-                wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
+                wb = np.linalg.norm(self.__get_property('EEE', 'position')[0] - self.base_position[0])
                 if wb < wb_th:
                     reward -= (wb_th - wb)
                 # Gripper too low
@@ -425,7 +427,7 @@ class JacoMujocoEnvUtil:
                 height_coef = 100
                 scale_coef = 0.05
                 
-                roll_e,pitch_e,yaw_e = self.__get_property('EE','pose')[0][3:]
+                roll_e,pitch_e,yaw_e = self.__get_property('EEE','pose')[0][3:]
                 ee_vec = self._get_rotation(roll_e, pitch_e, yaw_e, [0,0,-1], False)
                 xyz = self.interface.get_xyz('object_body' ) - self.gripper_pose[0][:3]
                 obj_diff = np.linalg.norm(xyz)
@@ -466,7 +468,7 @@ class JacoMujocoEnvUtil:
                     height_coef = 100
                     scale_coef = 0.01
                     
-                    roll_e,pitch_e,yaw_e = self.__get_property('EE','pose')[0][3:]
+                    roll_e,pitch_e,yaw_e = self.__get_property('EEE','pose')[0][3:]
                     ee_vec = self._get_rotation(roll_e, pitch_e, yaw_e, [0,0,-1], False)
                     xyz = self.interface.get_xyz('object_body' ) - self.gripper_pose[0][:3]
                     obj_diff = np.linalg.norm(xyz)
@@ -586,8 +588,8 @@ class JacoMujocoEnvUtil:
         dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0][:3])
         obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - obj_position[0])
         dest_diff = np.linalg.norm(self.dest_goal[0][:2] - obj_position[0][:2])
-        relx, rely, relz = self.__get_property('EE', 'position')[0] - self.base_position[0]
-        wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
+        relx, rely, relz = self.__get_property('EEE', 'position')[0] - self.base_position[0]
+        wb = np.linalg.norm(self.__get_property('EEE', 'position')[0] - self.base_position[0])
         if len(self.target_pos) < 9:
             if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
                 print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
@@ -941,11 +943,11 @@ if __name__ == "__main__":
                         if np.linalg.norm(a1[:] - target_pos1[:]) < 0.01 and np.linalg.norm(a2[:] - target_pos2[:]):
                             break
                     else:
-                        a = interface.get_xyz('EE')
+                        a = interface.get_xyz('EEE')
                         interface.send_forces(np.hstack([u[:6], [0, 0, 0]]))
                         if np.linalg.norm(a[:] - target_pos[:]) < 0.01:
                             #print("Reached")
-                            quat = interface.get_orientation('EE')
+                            quat = interface.get_orientation('EEE')
                             print(transformations.euler_from_quaternion(quat, 'rxyz'))
                             interface.set_mocap_orientation("hand", quat)
                             #break
@@ -971,7 +973,7 @@ if __name__ == "__main__":
                 target=np.hstack([0, 0, -0.15, 0, 0, 0])
             )
             interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        target_pos = interface.get_xyz('EE') - interface.get_xyz('base_link')
+        target_pos = interface.get_xyz('EEE') - interface.get_xyz('base_link')
         target_or = np.array([0, 0, 0], dtype=np.float16)
         vel_left = 10
         vel_right = 10
@@ -984,8 +986,8 @@ if __name__ == "__main__":
                     dq=fb['dq'],
                     target=np.hstack([target_pos + interface.get_xyz('base_link'), target_or])
                 )
-                a = interface.get_xyz('EE') - interface.get_xyz('base_link')
-                b = interface.get_orientation('EE')
+                a = interface.get_xyz('EEE') - interface.get_xyz('base_link')
+                b = interface.get_orientation('EEE')
                 # print(a)
                 interface.send_forces(np.hstack([[vel_left, vel_right, vel_left, vel_right], u, [0, 0, 0]]))
                 if np.linalg.norm(a[:] - target_pos[:]) < 0.01:

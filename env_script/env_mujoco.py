@@ -7,7 +7,7 @@ import time
 from gym import spaces
 from gym.utils import seeding
 
-from env_script.env_mujoco_util import JacoMujocoEnvUtil
+from env_script.env_mujoco_util_cis import JacoMujocoEnvUtil
 from env_script.env_mujoco_util_trans import PandaMujocoEnvUtil
 
 class JacoMujocoEnv(JacoMujocoEnvUtil):
@@ -26,7 +26,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         else:
             self.task_max_steps = 1200
         self.skip_frames = 50  #0.05s per step
-    #    self.seed(kwargs.get('seed', None))
+        self.seed(kwargs.get('seed', None))
 
         ## Observations
         # Not touched, Inner touched, Outer touched, grasped
@@ -267,6 +267,7 @@ class PandaMujocoEnv(PandaMujocoEnvUtil):
             self._step_simulation()
 
         obs = self.make_observation()
+
         reward_val = self._get_reward()
         done, additional_reward, self.wb = self.terminal_inspection()
         total_reward = reward_val + additional_reward
