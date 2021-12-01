@@ -45,8 +45,8 @@ class RL_controller:
         self.args.task = task_list[1]
         self.args.visualize = True
         self.args.prev_action = False
-        model_dir = self.model_path + 'releasing_trained_at_4_18_22:26:14_58/continue1/'
-        policy_dir = model_dir + '/policy_2070000.zip'
+        model_dir = self.model_path # + 'releasing_trained_at_4_18_22:26:14_58/continue1/'
+        policy_dir = model_dir + 'grasping/policy.zip'
         sub_dir = '/continue1'
         print("\033[92m"+model_dir + sub_dir+"\033[0m")
         
@@ -54,7 +54,7 @@ class RL_controller:
         buffer = None
 
         self.args.log_dir = model_dir
-        self.args.robot_file = "jaco2_curtain_torque"
+        self.args.robot_file = "panda_curtain_torque"
         self.args.n_robots = 1
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
@@ -65,6 +65,7 @@ class RL_controller:
         os.makedirs(model_dir+sub_dir, exist_ok=True)
         self.trainer = HPC.load(policy_dir, policy=MlpPolicy, env=env, replay_buffer=buffer, tensorboard_log=model_dir+sub_dir, \
                                     learning_rate=_lr_scheduler, learning_starts=100, ent_coef='auto')
+        total_time_step=100000
         self.trainer.learn(total_time_step, save_interval=10000, save_path=model_dir+sub_dir)
         print("Train Finished")
         self.trainer.save(model_dir+sub_dir)
@@ -300,6 +301,7 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    controller.train_HPC()
+   #controller.train_HPC()
+    controller.train_continue()
     #controller.train_HPC_continue()
     #controller.test()
