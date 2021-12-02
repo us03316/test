@@ -42,7 +42,7 @@ class RL_controller:
     def train_continue(self):
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
+        # self.args.task = task_list[1]
         self.args.visualize = True
         self.args.prev_action = False
         model_dir = self.model_path # + 'releasing_trained_at_4_18_22:26:14_58/continue1/'
@@ -61,15 +61,14 @@ class RL_controller:
         # traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
         # self.args.init_buffer = np.array(traj_dict['obs'])
         env = PandaMujocoEnv(**vars(self.args))
-        
+
         os.makedirs(model_dir+sub_dir, exist_ok=True)
-        self.trainer = HPC.load(policy_dir, policy=MlpPolicy, env=env, replay_buffer=buffer, tensorboard_log=model_dir+sub_dir, \
+        self.trainer = HPC.load(policy=MlpPolicy, env=env, replay_buffer=buffer, tensorboard_log=model_dir+sub_dir, \
                                     learning_rate=_lr_scheduler, learning_starts=100, ent_coef='auto')
         total_time_step=100000
         self.trainer.learn(total_time_step, save_interval=10000, save_path=model_dir+sub_dir)
         print("Train Finished")
         self.trainer.save(model_dir+sub_dir)
-
 
 
     def train_HPC(self):
@@ -84,6 +83,7 @@ class RL_controller:
                                 env=None, 
                                 _init_setup_model=False, 
                                 composite_primitive_name=composite_primitive_name)
+        
 
         if self.args.auxiliary:
             prefix = composite_primitive_name \

@@ -4,6 +4,7 @@ from math import pi
 
 import numpy as np
 from numpy.random import uniform, choice
+from gym.utils import seeding
 
 from abr_control.controllers import OSC
 from abr_control.controllers import OSC_1
@@ -713,10 +714,12 @@ class JacoMujocoEnvUtil:
 class PandaMujocoEnvUtil:
     def __init__(self, **kwargs):
         ### ------------  MODEL CONFIGURATION  ------------ ###
+
         self.n_robots = kwargs.get('n_robots', 1)
         robot_file = kwargs.get('robot_file', "panda_curtain_torque")
+
         if robot_file == None:
-            n_robot_postfix = ['', '_dual', '_tri']    
+            n_robot_postfix = ['', '_dual', '_tri']
             try:
                 xml_name = 'panda'+n_robot_postfix[self.n_robots-1]
             except Exception:
@@ -724,12 +727,16 @@ class PandaMujocoEnvUtil:
                             xml_file of the given number of robots doesn't exist\033[0m")
         else:
             xml_name = robot_file
+
+        
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, 
                                 dt=0.001, 
                                 visualize=kwargs.get('visualize', False), 
                                 create_offscreen_rendercontext=False)
+
         self.interface.connect()
+
         self.skip_frames = 50
         self.base_position = self.__get_property('link1', 'position')
         self.gripper_angle = np.ones(self.n_robots) * 0.6
@@ -756,17 +763,20 @@ class PandaMujocoEnvUtil:
 
         ### ------------  CONTROLLER SETUP  ------------ ###
         ctrl_dof = [True, True, True, True, True, True]
+
         self.ctr = OSC_1(self.jaco, 
                         kp=50, ko=180, kv=20, 
                         vmax=[0.4, 1.0472], 
                         ctrlr_dof=ctrl_dof)
+
         self._reset()
+
         self.target_pos = self.gripper_pose[0]
         ### ------------  REWARD  ------------ ###
         self.num_episodes = 0
         self.reward_method = kwargs.get('reward_method', None)
         self.reward_module = kwargs.get('reward_module', None)
-    
+
 
     def _step_simulation(self):
         fb = self.interface.get_feedback()
@@ -881,8 +891,8 @@ class PandaMujocoEnvUtil:
             random_init_angle *= self.n_robots
         elif self.task in ['carrying', 'grasping', 'placing']:
             angle0 = np.random.choice([uniform(3*pi/8,pi/2), uniform(pi/2,5*pi/8)])
-            random_init_angle = [angle0, 3.85, uniform(
-                    1, 1.1), uniform(2, 2.1), uniform(0.8, 2.3), uniform(3,3.1), uniform(0.8, 2.3)]
+            random_init_angle = [uniform(-0, -0.4),  uniform(0.2,0.3), uniform(
+                    0.3,0.4), uniform(-2, -2.2), uniform(0.2, 0.4), uniform(3.2, 3.4), uniform(2, 2.3)] * self.n_robots
             random_init_angle *= self.n_robots
         elif self.task is 'releasing':
             random_init_angle = [uniform(1.9, 2), uniform(3.3,3.6), uniform(0.5, 0.8),
